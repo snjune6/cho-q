@@ -1,0 +1,59 @@
+# Cho-Q — 카페24 Apache 설정
+# PHP 8.1+ 권장, mod_rewrite 필요
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # 민감 경로 차단
+    RewriteRule ^(config|includes|sql|views)(/|$) - [F,L]
+
+    # API·정적 파일은 그대로 통과
+    RewriteCond %{REQUEST_URI} ^/(api|assets)/
+    RewriteRule ^ - [L]
+
+    # 실제 파일/디렉토리가 있으면 통과
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # 나머지는 index.php 로 라우팅
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+# 민감 디렉토리 웹 접근 차단 (mod_rewrite 미지원 시 폴백)
+<IfModule !mod_rewrite.c>
+    RedirectMatch 403 ^/(config|includes|sql|views)(/|$)
+</IfModule>
+
+# config.php 직접 접근 차단 (Apache 2.4)
+<FilesMatch "^(config\.php|config\.example\.php)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+</FilesMatch>
+
+# PHP 설정 (카페24 공유호스팅 — 서버 정책에 따라 무시될 수 있음)
+<IfModule mod_php.c>
+    php_value default_charset "UTF-8"
+    php_value date.timezone "Asia/Seoul"
+</IfModule>
+
+# HTTPS 강제 (SSL 인증서 적용 후 주석 해제)
+# <IfModule mod_rewrite.c>
+#     RewriteCond %{HTTPS} off
+#     RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+# </IfModule>
+
+# 캐시: API는 no-store, 정적은 브라우저 캐시 허용
+<IfModule mod_headers.c>
+    <FilesMatch "\.(css|js|png|jpg|svg|webp|ico)$">
+        Header set Cache-Control "public, max-age=604800"
+    </FilesMatch>
+</IfModule>
+
+# 디렉토리 목록 비활성화
+Options -Indexes
+
+# 기본 문서
+DirectoryIndex index.php

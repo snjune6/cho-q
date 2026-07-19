@@ -1,0 +1,12 @@
+# 설정 (서버별 비밀값)
+config/config.php
+
+# IDE
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 로그
+*.log
