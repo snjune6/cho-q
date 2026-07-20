@@ -4,6 +4,7 @@
 /** @var array|null $status */
 $carCode = $car['car_code'];
 $currentKey = $status['status_key'] ?? 'nervous';
+$customMessage = ($currentKey === 'custom') ? (string) ($status['custom_message'] ?? '') : '';
 ?>
 
 <section class="card console-intro">
@@ -12,10 +13,6 @@ $currentKey = $status['status_key'] ?? 'nervous';
 </section>
 
 <form id="consoleForm" class="console-form" data-car="<?= e($carCode) ?>">
-    <label class="field">
-        <span>PIN 번호</span>
-        <input type="password" name="pin" inputmode="numeric" pattern="[0-9]*" maxlength="8" placeholder="4자리 PIN" required>
-    </label>
 
     <div class="status-grid">
         <?php foreach ($presets as $key => $preset): ?>
@@ -30,17 +27,22 @@ $currentKey = $status['status_key'] ?? 'nervous';
         <?php endforeach; ?>
     </div>
 
-    <label class="field custom-field" id="customField" hidden>
+    <div class="field custom-field" id="customField" hidden>
         <span>직접 입력 메시지</span>
-        <textarea name="custom_message" rows="2" maxlength="200" placeholder="예: 신호 대기 중이에요, 잠시만요!"></textarea>
-    </label>
+        <textarea id="customMessageEditor" name="custom_message" placeholder="예: 신호 대기 중이에요, 잠시만요!"><?= htmlspecialchars($customMessage, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></textarea>
+        <p class="form-hint">굵게·기울임·목록·이미지(2MB) 사용 가능 (텍스트 200자, 스크립트 차단)</p>
+    </div>
 
     <button type="submit" class="btn btn-primary btn-block">상태 업데이트</button>
     <p class="form-hint" id="consoleHint" role="status"></p>
 </form>
 
 <section class="card">
-    <h2>QR 페이지</h2>
+    <h2>내 QR 코드</h2>
+    <div class="qr-preview">
+        <img src="<?= e(qr_image_url($carCode)) ?>" width="200" height="200" alt="QR 코드">
+        <a class="btn btn-secondary" href="<?= e(qr_image_url($carCode)) ?>" download="cho-q-<?= e($carCode) ?>.png">PNG 다운로드</a>
+    </div>
     <p class="qr-url"><a href="<?= e(car_public_url($carCode)) ?>"><?= e(car_public_url($carCode)) ?></a></p>
 </section>
 

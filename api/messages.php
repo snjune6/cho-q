@@ -20,6 +20,10 @@ try {
             json_response(['error' => '차량을 찾을 수 없습니다.'], 404);
         }
 
+        if (!car_is_active($car)) {
+            json_response(['error' => '이 QR은 이용이 중지되었습니다.'], 403);
+        }
+
         $stmt = db()->prepare(
             'SELECT id, message, created_at FROM guest_messages WHERE car_id = ? ORDER BY created_at DESC LIMIT ?'
         );
@@ -57,13 +61,23 @@ try {
             json_response(['error' => '차량을 찾을 수 없습니다.'], 404);
         }
 
-        $stmt = db()->prepare('INSERT INTO guest_messages (car_id, message) VALUES (?, ?)');
-        $stmt->execute([(int) $car['id'], $message]);
+        if (!car_is_active($car)) {
+            json_response(['error' => '이 QR은 이용이 중지되었습니다.'], 403);
+        }
+
+        try {
+            assert_guest_message_allowed($message);
+            assert_guest_message_rate_limit((int) $car['id']);
+        } catch (InvalidArgumentException $e) {
+            json_response(['error' => $e->getMessage()], 400);
+        }
+
+        $messageId = insert_guest_message((int) $car['id'], $message);
 
         json_response([
             'ok' => true,
             'message' => [
-                'id'         => (int) db()->lastInsertId(),
+                'id'         => $messageId,
                 'message'    => $message,
                 'created_at' => (new DateTimeImmutable())->format(DateTime::ATOM),
             ],

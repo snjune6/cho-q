@@ -18,6 +18,10 @@ try {
             json_response(['error' => '차량을 찾을 수 없습니다.'], 404);
         }
 
+        if (!car_is_active($car)) {
+            json_response(['error' => '이 QR은 이용이 중지되었습니다.'], 403);
+        }
+
         $status = get_driver_status((int) $car['id']);
         if (!$status) {
             json_response(['error' => '상태 정보가 없습니다.'], 404);
@@ -34,13 +38,14 @@ try {
     if ($method === 'POST') {
         $body = read_json_body();
         $carCode = trim((string) ($body['car'] ?? ''));
-        $pin = (string) ($body['pin'] ?? '');
         $statusKey = trim((string) ($body['status_key'] ?? ''));
         $customMessage = trim((string) ($body['custom_message'] ?? ''));
 
-        if ($carCode === '' || $pin === '' || $statusKey === '') {
-            json_response(['error' => 'car, pin, status_key 가 필요합니다.'], 400);
+        if ($carCode === '' || $statusKey === '') {
+            json_response(['error' => 'car, status_key 가 필요합니다.'], 400);
         }
+
+        ['user' => $user, 'car' => $car] = require_car_manage_json($carCode);
 
         if (!array_key_exists($statusKey, status_presets())) {
             json_response(['error' => '유효하지 않은 status_key 입니다.'], 400);
@@ -50,21 +55,34 @@ try {
             json_response(['error' => 'custom 상태는 custom_message 가 필요합니다.'], 400);
         }
 
-        if (mb_strlen($customMessage) > 200) {
+        if ($statusKey === 'custom') {
+            try {
+                $customMessage = validate_and_sanitize_custom_message($customMessage);
+            } catch (InvalidArgumentException $e) {
+                json_response(['error' => $e->getMessage()], 400);
+            }
+        } elseif (mb_strlen($customMessage) > 200) {
             json_response(['error' => '메시지는 200자 이하여야 합니다.'], 400);
         }
 
-        $car = find_car_by_code($carCode);
-        if (!$car || !verify_car_pin($car, $pin)) {
-            json_response(['error' => '인증에 실패했습니다.'], 403);
+        if ($customMessage !== '') {
+            try {
+                assert_no_blocked_content($customMessage);
+            } catch (InvalidArgumentException $e) {
+                json_response(['error' => $e->getMessage()], 400);
+            }
         }
+
+        $carId = (int) $car['id'];
 
         $stmt = db()->prepare(
             'UPDATE driver_status SET status_key = ?, custom_message = ?, updated_at = NOW() WHERE car_id = ?'
         );
-        $stmt->execute([$statusKey, $customMessage, (int) $car['id']]);
+        $stmt->execute([$statusKey, $customMessage, $carId]);
 
-        $status = get_driver_status((int) $car['id']);
+        log_status_change($carId, (int) $user['id'], $statusKey, $customMessage);
+
+        $status = get_driver_status($carId);
         json_response([
             'ok'             => true,
             'status_key'     => $status['status_key'],

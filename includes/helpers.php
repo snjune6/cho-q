@@ -13,7 +13,7 @@ function base_url(): string
     return rtrim((string) (app_config()['base_url'] ?? ''), '/');
 }
 
-function json_response(array $data, int $status = 200): never
+function json_response(array $data, int $status = 200)
 {
     http_response_code($status);
     header('Content-Type: application/json; charset=utf-8');
@@ -44,25 +44,61 @@ function status_presets(): array
     ];
 }
 
+/** QR 페이지 빠른 응원 (이모지 버튼) */
+function guest_quick_replies(): array
+{
+    return [
+        ['emoji' => '👍', 'message' => '👍 천천히 가셔도 돼요!'],
+        ['emoji' => '💪', 'message' => '💪 화이팅!'],
+        ['emoji' => '🙏', 'message' => '🙏 기다려 주셔서 감사해요'],
+        ['emoji' => '💛', 'message' => '💛 응원합니다!'],
+        ['emoji' => '😊', 'message' => '😊 괜찮아요, 천천히요'],
+        ['emoji' => '👏', 'message' => '👏 잘하고 계세요!'],
+    ];
+}
+
 function resolve_status_display(string $statusKey, string $customMessage): array
 {
     $presets = status_presets();
     if ($statusKey === 'custom') {
-        $message = trim($customMessage) !== '' ? $customMessage : '상태 메시지를 입력해 주세요';
-        return ['label' => '나의 한마디', 'icon' => '✏️', 'message' => $message];
+        $html = safe_custom_message_html($customMessage);
+        $plain = custom_message_plain_text($html);
+        $hasImages = count_message_images($html) > 0;
+
+        if ($plain === '' && !$hasImages) {
+            return [
+                'label'        => '나의 한마디',
+                'icon'         => '✏️',
+                'message'      => '상태 메시지를 입력해 주세요',
+                'message_html' => '',
+                'is_html'      => false,
+            ];
+        }
+
+        return [
+            'label'        => '나의 한마디',
+            'icon'         => '✏️',
+            'message'      => $plain !== '' ? $plain : '사진을 보냈어요',
+            'message_html' => $html,
+            'is_html'      => custom_message_has_rich_html($html) || $hasImages,
+        ];
     }
 
     $preset = $presets[$statusKey] ?? $presets['nervous'];
     return [
-        'label'   => $preset['label'],
-        'icon'    => $preset['icon'],
-        'message' => $preset['desc'],
+        'label'        => $preset['label'],
+        'icon'         => $preset['icon'],
+        'message'      => $preset['desc'],
+        'message_html' => '',
+        'is_html'      => false,
     ];
 }
 
 function find_car_by_code(string $carCode): ?array
 {
-    $stmt = db()->prepare('SELECT id, car_code, pin_hash, created_at FROM cars WHERE car_code = ? LIMIT 1');
+    $stmt = db()->prepare(
+        'SELECT id, user_id, car_code, pin_hash, is_active, created_at FROM cars WHERE car_code = ? LIMIT 1'
+    );
     $stmt->execute([$carCode]);
     $row = $stmt->fetch();
     return $row ?: null;
@@ -76,11 +112,6 @@ function get_driver_status(int $carId): ?array
     $stmt->execute([$carId]);
     $row = $stmt->fetch();
     return $row ?: null;
-}
-
-function verify_car_pin(array $car, string $pin): bool
-{
-    return password_verify($pin, $car['pin_hash']);
 }
 
 function iso8601($date) {

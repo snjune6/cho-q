@@ -1,5 +1,5 @@
 # Cho-Q — 카페24 Apache 설정
-# PHP 8.1+ 권장, mod_rewrite 필요
+# PHP 7.4+ 권장, mod_rewrite 필요
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
@@ -17,8 +17,8 @@
     RewriteCond %{REQUEST_FILENAME} -d
     RewriteRule ^ - [L]
 
-    # 나머지는 index.php 로 라우팅
-    RewriteRule ^ index.php [L]
+    # 나머지는 index.php 로 라우팅 (QSA: ?code= OAuth 파라미터 유지)
+    RewriteRule ^ index.php [QSA,L]
 </IfModule>
 
 # 민감 디렉토리 웹 접근 차단 (mod_rewrite 미지원 시 폴백)

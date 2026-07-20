@@ -6,10 +6,23 @@
     <meta name="description" content="초보 운전자의 속사정을 QR로 공유하는 모바일 웹 서비스, 초큐">
     <title><?= e($pageTitle) ?></title>
     <link rel="stylesheet" href="/assets/css/app.css">
+    <?php if (($pageClass ?? '') === 'page-console'): ?>
+    <link rel="stylesheet" href="/assets/vendor/jodit/jodit.min.css">
+    <?php endif; ?>
 </head>
 <body class="<?= e($pageClass ?? '') ?>">
 <header class="site-header">
     <a href="/" class="logo">🚗 초큐</a>
+    <nav class="site-nav">
+        <?php $navUser = current_user(); ?>
+        <?php if ($navUser): ?>
+            <a href="/my">내 초큐</a>
+            <?php if (is_admin()): ?>
+                <a href="/admin">관리</a>
+            <?php endif; ?>
+            <a href="/auth/logout" class="nav-logout">로그아웃</a>
+        <?php endif; ?>
+    </nav>
     <button type="button" class="theme-toggle" id="themeToggle" aria-label="다크모드 전환">🌙</button>
 </header>
 
@@ -21,6 +34,10 @@
     <p>초보의 속사정을 큐알(QR)로</p>
 </footer>
 
+<?php if (($pageClass ?? '') === 'page-console'): ?>
+<script src="/assets/vendor/jodit/jodit.min.js"></script>
+<script src="/assets/js/console-editor.js"></script>
+<?php endif; ?>
 <script src="/assets/js/app.js" defer></script>
 </body>
 </html>

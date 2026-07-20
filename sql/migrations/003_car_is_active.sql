@@ -1,0 +1,3 @@
+-- 003: QR 이용 중지 플래그
+ALTER TABLE cars
+    ADD COLUMN IF NOT EXISTS is_active TINYINT(1) NOT NULL DEFAULT 1 AFTER pin_hash;

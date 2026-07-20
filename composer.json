@@ -1,6 +1,12 @@
 {
     "require": {
+        "php": ">=7.4",
         "google/apiclient": "^1.1",
         "endroid/qr-code": "^4.6"
+    },
+    "config": {
+        "platform": {
+            "php": "7.4.33"
+        }
     }
 }

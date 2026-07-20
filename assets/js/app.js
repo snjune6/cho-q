@@ -35,12 +35,19 @@
             if (!icon || !label || !message || !display) return;
             icon.textContent = display.icon || '✏️';
             label.textContent = display.label || '';
-            message.textContent = display.message || '';
+            if (display.is_html && display.message_html) {
+                message.innerHTML = display.message_html;
+            } else {
+                message.textContent = display.message || '';
+            }
         },
 
         appendMessages(listEl, messages) {
             if (!listEl || !messages || !messages.length) return;
             messages.forEach((msg) => {
+                if (msg.id && ChoQ.seenMessageIds.has(msg.id)) return;
+                if (msg.id) ChoQ.seenMessageIds.add(msg.id);
+
                 const li = document.createElement('li');
                 const text = document.createElement('span');
                 text.textContent = msg.message;
@@ -53,16 +60,28 @@
             });
         },
 
+        updateSinceFromMessages(messages) {
+            if (!messages || !messages.length) return;
+            messages.forEach((msg) => {
+                if (msg.created_at && msg.created_at > ChoQ.since) {
+                    ChoQ.since = msg.created_at;
+                }
+            });
+        },
+
         async loadMessages(carCode) {
             const listEl = document.getElementById('messageList');
             if (!listEl) return;
             const data = await ChoQ.fetchJson(`/api/messages.php?car=${encodeURIComponent(carCode)}&limit=20`);
             listEl.innerHTML = '';
+            ChoQ.seenMessageIds.clear();
             ChoQ.appendMessages(listEl, data.messages || []);
+            ChoQ.updateSinceFromMessages(data.messages || []);
         },
 
         pollTimer: null,
         since: '',
+        seenMessageIds: new Set(),
 
         startPolling(carCode, intervalMs) {
             ChoQ.since = window.ChoQPage?.since || new Date().toISOString();
@@ -79,13 +98,7 @@
                     }
                     if (data.messages && data.messages.length) {
                         ChoQ.appendMessages(document.getElementById('messageList'), data.messages);
-                        const last = data.messages[data.messages.length - 1];
-                        if (last && last.created_at > ChoQ.since) {
-                            ChoQ.since = last.created_at;
-                        }
-                    }
-                    if (data.polled_at) {
-                        ChoQ.since = data.polled_at;
+                        ChoQ.updateSinceFromMessages(data.messages);
                     }
                 } catch {
                     /* 폴링 실패는 조용히 무시 */
@@ -115,6 +128,32 @@
             btn.textContent = theme === 'dark' ? '☀️' : '🌙';
         },
 
+        async sendGuestMessage(carCode, message) {
+            const trimmed = message.trim();
+            if (!trimmed) return null;
+
+            const result = await ChoQ.fetchJson('/api/messages.php', {
+                method: 'POST',
+                body: JSON.stringify({ car: carCode, message: trimmed }),
+            });
+
+            if (result.message) {
+                const listEl = document.getElementById('messageList');
+                ChoQ.appendMessages(listEl, [result.message]);
+                ChoQ.updateSinceFromMessages([result.message]);
+            }
+
+            return result;
+        },
+
+        setGuestFormBusy(form, busy) {
+            form?.querySelector('button[type="submit"]')?.toggleAttribute('disabled', busy);
+            form?.querySelector('textarea')?.toggleAttribute('disabled', busy);
+            document.querySelectorAll('.emoji-btn').forEach((btn) => {
+                btn.disabled = busy;
+            });
+        },
+
         initCarPage() {
             const page = window.ChoQPage;
             if (!page || page.mode !== 'car') return;
@@ -123,23 +162,90 @@
             ChoQ.startPolling(page.carCode, page.pollInterval || 3000);
 
             const form = document.getElementById('messageForm');
+
+            document.querySelectorAll('.emoji-btn').forEach((btn) => {
+                btn.addEventListener('click', async () => {
+                    const message = btn.dataset.message || '';
+                    if (!message) return;
+
+                    ChoQ.setGuestFormBusy(form, true);
+                    try {
+                        await ChoQ.sendGuestMessage(page.carCode, message);
+                    } catch (err) {
+                        alert(err.message);
+                    } finally {
+                        ChoQ.setGuestFormBusy(form, false);
+                    }
+                });
+            });
+
             form?.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const textarea = form.querySelector('textarea');
                 const message = textarea?.value.trim();
                 if (!message) return;
 
-                const btn = form.querySelector('button[type="submit"]');
-                btn.disabled = true;
+                ChoQ.setGuestFormBusy(form, true);
                 try {
-                    await ChoQ.fetchJson('/api/messages.php', {
-                        method: 'POST',
-                        body: JSON.stringify({ car: page.carCode, message }),
-                    });
+                    await ChoQ.sendGuestMessage(page.carCode, message);
                     textarea.value = '';
-                    await ChoQ.loadMessages(page.carCode);
                 } catch (err) {
                     alert(err.message);
+                } finally {
+                    ChoQ.setGuestFormBusy(form, false);
+                }
+            });
+
+            ChoQ.initReportForm(page.carCode);
+        },
+
+        initReportForm(carCode) {
+            const toggle = document.getElementById('reportToggle');
+            const panel = document.getElementById('reportPanel');
+            const form = document.getElementById('reportForm');
+            const hint = document.getElementById('reportHint');
+            if (!toggle || !panel || !form) return;
+
+            toggle.addEventListener('click', () => {
+                const open = panel.hidden;
+                panel.hidden = !open;
+                toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+            });
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const reason = form.querySelector('[name="reason"]')?.value || '';
+                const detail = form.querySelector('[name="detail"]')?.value?.trim() || '';
+                if (!reason) return;
+
+                const btn = form.querySelector('button[type="submit"]');
+                btn.disabled = true;
+                if (hint) {
+                    hint.hidden = true;
+                    hint.className = 'form-hint';
+                }
+
+                try {
+                    const result = await ChoQ.fetchJson('/api/reports.php', {
+                        method: 'POST',
+                        body: JSON.stringify({ car: carCode, reason, detail }),
+                    });
+                    form.reset();
+                    panel.hidden = true;
+                    toggle.setAttribute('aria-expanded', 'false');
+                    if (hint) {
+                        hint.textContent = result.message || '신고가 접수되었습니다.';
+                        hint.className = 'form-hint ok';
+                        hint.hidden = false;
+                    }
+                } catch (err) {
+                    if (hint) {
+                        hint.textContent = err.message;
+                        hint.className = 'form-hint err';
+                        hint.hidden = false;
+                    } else {
+                        alert(err.message);
+                    }
                 } finally {
                     btn.disabled = false;
                 }
@@ -151,28 +257,19 @@
             if (!page || page.mode !== 'console') return;
 
             const form = document.getElementById('consoleForm');
-            const customField = document.getElementById('customField');
             const hint = document.getElementById('consoleHint');
-
-            const toggleCustom = () => {
-                const selected = form?.querySelector('input[name="status_key"]:checked');
-                const isCustom = selected?.value === 'custom';
-                if (customField) customField.hidden = !isCustom;
-            };
-
-            form?.querySelectorAll('input[name="status_key"]').forEach((radio) => {
-                radio.addEventListener('change', toggleCustom);
-            });
-            toggleCustom();
 
             form?.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const fd = new FormData(form);
+                const customMessage = window.ChoQEditor
+                    ? window.ChoQEditor.getValue()
+                    : (fd.get('custom_message') || '');
+
                 const payload = {
                     car: page.carCode,
-                    pin: fd.get('pin'),
                     status_key: fd.get('status_key'),
-                    custom_message: fd.get('custom_message') || '',
+                    custom_message: customMessage,
                 };
 
                 const btn = form.querySelector('button[type="submit"]');

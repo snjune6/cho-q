@@ -17,6 +17,10 @@ try {
         json_response(['error' => '차량을 찾을 수 없습니다.'], 404);
     }
 
+    if (!car_is_active($car)) {
+        json_response(['error' => '이 QR은 이용이 중지되었습니다.'], 403);
+    }
+
     $carId = (int) $car['id'];
     $status = get_driver_status($carId);
     if (!$status) {

@@ -1,0 +1,10 @@
+-- Cho-Q DB 신규 배포 가이드 (카페24 phpMyAdmin)
+--
+-- [1] sql/schema.sql  → Import (테이블 생성)
+-- [2] sql/seed.sql    → Import (데모 QR /c/demo + 샘플 방명록)
+--
+-- 기존 DB에 기능만 추가할 때: php sql/migrate.php
+-- 데이터만 전부 지울 때: sql/clear_data.sql
+--
+-- Google 로그인 1회 후 관리자 지정:
+--   UPDATE users SET role = 'admin' WHERE email = '운영자@gmail.com';

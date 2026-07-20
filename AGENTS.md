@@ -82,7 +82,7 @@ cho-q/                      ← 카페24 웹루트(/)에 그대로 업로드
 |------|------|------|
 | `id` | INT PK AI | |
 | `car_code` | VARCHAR(32) UNIQUE | URL용 코드 (예: `busan1234`) |
-| `pin_hash` | VARCHAR(255) | 콘솔 접근 PIN (password_hash) |
+| `pin_hash` | VARCHAR(255) | 레거시 컬럼 (미사용) |
 | `created_at` | DATETIME | |
 
 ### `driver_status` — 현재 상태 (차량당 1행)
@@ -103,6 +103,21 @@ cho-q/                      ← 카페24 웹루트(/)에 그대로 업로드
 | `message` | VARCHAR(200) | 익명 메시지 |
 | `created_at` | DATETIME | |
 
+### `users` — Google 로그인 회원
+
+| 컬럼 | 타입 | 설명 |
+|------|------|------|
+| `id` | INT PK AI | |
+| `google_id` | VARCHAR(64) UNIQUE | Google sub |
+| `email` | VARCHAR(255) UNIQUE | |
+| `name` | VARCHAR(100) | |
+| `avatar_url` | VARCHAR(500) | |
+| `role` | VARCHAR(16) | `general`(일반), `user`(사용자), `admin`(관리자). **최초 가입 = general** |
+| `last_login_at` | DATETIME | |
+| `created_at` | DATETIME | |
+
+> `cars.user_id` → 회원 소유 차량 (NULL이면 데모/공용). Google 로그인 시 `users` upsert 후 `/my`에서 QR 등록.
+
 ---
 
 ## 5. API 규칙
@@ -115,9 +130,9 @@ cho-q/                      ← 카페24 웹루트(/)에 그대로 업로드
 { "status_key": "parking", "custom_message": "", "updated_at": "2026-07-14T12:00:00+09:00" }
 ```
 
-### `POST /api/status.php` (콘솔 인증 필요)
+### `POST /api/status.php` (콘솔)
 
-Body: `{ "car": "busan1234", "pin": "1234", "status_key": "sorry", "custom_message": "" }`
+Body: `{ "car": "busan1234", "status_key": "sorry", "custom_message": "" }`
 
 ### `GET /api/messages.php?car={carCode}&limit=20`
 
@@ -173,7 +188,7 @@ Body: `{ "car": "busan1234", "message": "천천히 가셔도 돼요!" }`
 
 - **Mobile First**: 기준 너비 390px, 세로 화면 우선
 - **PHP only**: 프레임워크 없이 순수 PHP + PDO. Composer는 선택
-- **보안**: PIN은 `password_hash` / `password_verify`. SQL은 반드시 prepared statement
+- **보안**: SQL은 반드시 prepared statement. custom_message는 HTML sanitize 적용
 - **실시간**: Supabase Realtime 대신 **3초 폴링** (`assets/js/app.js`의 `ChoQ.poll()`)
 - **카페24 호환**: `exec`, `shell_exec`, Node, WebSocket 사용 금지
 

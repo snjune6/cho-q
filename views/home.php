@@ -1,13 +1,21 @@
 <?php
-// views/home.php
-require_once __DIR__ . '/../config/config.local.php';
-
-// 구글 인증 페이지로 가는 URL 생성
-$loginUrl = $client->createAuthUrl();
+/** @var string|null $loginUrl */
+$loginUrl = google_login_url();
+$user = current_user();
 ?>
 
-<!-- HTML 영역 -->
-<a href="<?= htmlspecialchars($loginUrl) ?>">구글 계정으로 로그인하기</a>
+<?php if ($loginUrl): ?>
+<section class="card demo-links">
+    <?php if ($user): ?>
+        <p>안녕하세요, <strong><?= e($user['name'] !== '' ? $user['name'] : $user['email']) ?></strong> 님</p>
+        <a class="btn btn-primary" href="/my">내 초큐 보기</a>
+        <a class="btn btn-secondary" href="/auth/logout">로그아웃</a>
+    <?php else: ?>
+        <a class="btn btn-primary" href="<?= e($loginUrl) ?>">구글 계정으로 시작하기</a>
+        <p class="form-hint">로그인하면 나만의 QR과 운전자 콘솔을 만들 수 있어요.</p>
+    <?php endif; ?>
+</section>
+<?php endif; ?>
 
 <section class="hero">
     <div class="hero-badge">Cho-Q</div>
@@ -30,5 +38,5 @@ $loginUrl = $client->createAuthUrl();
 <section class="card demo-links">
     <h2>체험해 보기</h2>
     <a class="btn btn-primary" href="/c/demo">데모 차량 보기</a>
-    <a class="btn btn-secondary" href="/console/demo">운전자 콘솔 (PIN: 1234)</a>
+    <a class="btn btn-secondary" href="/console/demo">운전자 콘솔</a>
 </section>

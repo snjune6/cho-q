@@ -20,5 +20,14 @@ return [
         'base_url'  => 'http://localhost:8080',
         'timezone'  => 'Asia/Seoul',
         'poll_interval_ms' => 3000,
+        'guest_message_rate_limit' => 5,       // IP당·QR당 윈도우 내 최대 건수
+        'guest_message_rate_window_sec' => 600, // 10분
+        'report_rate_limit' => 3,              // IP당·QR당 신고 최대 건수
+        'report_rate_window_sec' => 3600,      // 1시간
+    ],
+    'google' => [
+        'client_id'     => '',
+        'client_secret' => '',
+        'redirect_uri'  => 'http://localhost:8080/auth/google/callback',
     ],
 ];

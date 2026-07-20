@@ -29,6 +29,9 @@ cache/
 # ── MariaDB MCP (로컬 클론, 용량 큼 — clone 후 uv sync 로 설치) ──
 /tools/mariadb-mcp/
 
+# 사용자 업로드
+/uploads/custom/
+
 # ── 환경 변수 ──
 .env
 .env.*
