@@ -58,7 +58,7 @@ try {
             'display'        => resolve_status_display($status['status_key'], $status['custom_message']),
         ],
         'messages'   => $newMessages,
-        'polled_at'  => (new DateTimeImmutable())->format(DateTimeInterface::ATOM),
+        'polled_at'  => (new DateTimeImmutable())->format(DateTime::ATOM),
     ]);
 } catch (Throwable $e) {
     $message = app_config()['env'] === 'local' ? $e->getMessage() : '서버 오류가 발생했습니다.';

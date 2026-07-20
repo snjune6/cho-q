@@ -18,7 +18,7 @@ function json_response(array $data, int $status = 200): never
     http_response_code($status);
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store');
-    echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+    echo json_encode($data, JSON_UNESCAPED_UNICODE);
     exit;
 }
 
@@ -83,10 +83,8 @@ function verify_car_pin(array $car, string $pin): bool
     return password_verify($pin, $car['pin_hash']);
 }
 
-function iso8601(string $datetime): string
-{
-    $dt = new DateTimeImmutable($datetime);
-    return $dt->format(DateTimeInterface::ATOM);
+function iso8601($date) {
+    return date('c', strtotime($date));
 }
 
 function e(string $value): string

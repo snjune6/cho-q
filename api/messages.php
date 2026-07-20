@@ -65,7 +65,7 @@ try {
             'message' => [
                 'id'         => (int) db()->lastInsertId(),
                 'message'    => $message,
-                'created_at' => (new DateTimeImmutable())->format(DateTimeInterface::ATOM),
+                'created_at' => (new DateTimeImmutable())->format(DateTime::ATOM),
             ],
         ], 201);
     }
