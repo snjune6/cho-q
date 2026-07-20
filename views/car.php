@@ -1,4 +1,25 @@
 <?php
+// views/car.php
+require_once __DIR__ . '/../config/config.local.php';
+use Endroid\QrCode\QrCode;
+use Endroid\QrCode\Writer\PngWriter;
+
+if (!isset($_SESSION['user_id'])) {
+    die("로그인이 필요합니다.");
+}
+
+$userId = $_SESSION['user_id'];
+
+// QR 코드에 담을 개인화된 데이터 (예: 프로필 페이지 URL)
+$qrData = "http://localhost/profile?id=" . $userId;
+
+$qrCode = QrCode::create($qrData);
+$writer = new PngWriter();
+$result = $writer->write($qrCode);
+
+// Base64 형태로 변환하여 HTML 이미지 태그에 바로 출력
+$qrImageBase64 = base64_encode($result->getString());
+
 /** @var array $car */
 /** @var array $status */
 /** @var array $display */
@@ -6,6 +27,9 @@
 $carCode = $car['car_code'];
 $updatedAt = iso8601($status['updated_at']);
 ?>
+
+<h2>환영합니다! 회원님만의 고유 QR 코드입니다.</h2>
+<img src="data:image/png;base64,<?= $qrImageBase64 ?>" alt="Personalized QR Code">
 
 <section class="status-card" id="statusCard"
          data-car="<?= e($carCode) ?>"

@@ -1,3 +1,14 @@
+<?php
+// views/home.php
+require_once __DIR__ . '/../config/config.local.php';
+
+// 구글 인증 페이지로 가는 URL 생성
+$loginUrl = $client->createAuthUrl();
+?>
+
+<!-- HTML 영역 -->
+<a href="<?= htmlspecialchars($loginUrl) ?>">구글 계정으로 로그인하기</a>
+
 <section class="hero">
     <div class="hero-badge">Cho-Q</div>
     <h1>초보의 속사정을<br><span class="accent">큐알(QR)</span>로!</h1>

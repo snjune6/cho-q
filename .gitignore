@@ -1,12 +1,35 @@
-# 설정 (서버별 비밀값)
+# ── 설정 (서버별 비밀값) ──
 config/config.php
+config/config.local.php
+config/config.production.php
+config/*.local.php
 
-# IDE
+# ── Composer ──
+/vendor/
+
+# ── Cursor / IDE ──
+.cursor/
 .idea/
+.vscode/
+*.iml
 
-# OS
+# ── OS ──
 .DS_Store
 Thumbs.db
+ehthumbs.db
+Desktop.ini
 
-# 로그
+# ── 로그 · 캐시 · 임시 ──
 *.log
+logs/
+tmp/
+cache/
+.phpunit.result.cache
+
+# ── MariaDB MCP (로컬 클론, 용량 큼 — clone 후 uv sync 로 설치) ──
+/tools/mariadb-mcp/
+
+# ── 환경 변수 ──
+.env
+.env.*
+!.env.example
